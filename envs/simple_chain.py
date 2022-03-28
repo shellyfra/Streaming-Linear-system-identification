@@ -1,7 +1,7 @@
 
 import numpy as np
 from utils.prob_utils import sample_discrete, draw_in_l2_ball
-from keras.datasets import mnist
+# from keras.datasets import mnist
 from utils.learning_utils import sigmoid, softmax, bce_loss, cross_entropy_loss, one_hot
 from scipy.linalg import toeplitz
 

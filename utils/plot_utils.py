@@ -20,7 +20,7 @@ def set_default_plot_params():
     # plt.rcParams['axes.linewidth'] = 2
 
 
-set_default_plot_params()
+# set_default_plot_params()
 
 
 def plot_convergence(avg_arr, std_arr=None, xaxis=None, n_reps=1, subsample=100,

@@ -175,18 +175,20 @@ def main(args, save_result=True, load_run_data_flag=False, result_dir_to_load=''
 
     # ----- Plot figures ----- #
     if plot or save_PDF:
-        plot_convergence(disp_errors, n_reps=args.T, subsample=1)
+        plot_convergence(disp_errors, n_reps=args.T, subsample=10)
+        # x = np.arange(1, disp_errors.shape[0]+1)
+        # plt.scatter(x, disp_errors.reshape(-1))
         plt.xlabel('Num. iterations')
-        plt.ylabel(r'$f(\bar{A}_0_t) - f(A^*)$')
+        plt.ylabel(r'$||\bar{A}_{0t} - A^*||$')
         plt.yscale('log')
-        # plt.tight_layout()
+        plt.tight_layout()
         if save_PDF:
             save_fig(args.run_name + '_error')
         else:
             plt.show()
-        plot_convergence(disp_errors_logT, n_reps=args.T - int(np.floor(np.log2(args.T))), subsample=1) # semilogx=True ??
+        plot_convergence(disp_errors_logT, n_reps=args.T - int(np.floor(np.log2(args.T))), subsample=10) # semilogx=True ??
         plt.xlabel('Num. iterations')
-        plt.ylabel(r'$f(\bar{A}_log(T)_t) - f(A^*)$')
+        plt.ylabel(r'$||\bar{A}_{log(T)t} - A^*||$')
         plt.yscale('log')
         plt.xscale('log')
         plt.xlim(1, points_to_compute_lr)

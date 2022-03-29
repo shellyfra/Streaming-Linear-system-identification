@@ -7,11 +7,10 @@ from learning_rate_schedulers import *
 
 
 class SGD:
-    def __init__(self, w_init, lr_params, T, momentum_def=None, beta=0.9, grad_clip=None):
+    def __init__(self, w_init, lr_params, momentum_def=None, beta=0.9, grad_clip=None):
         self.w = w_init  # reshape([-1 1])
         self.iterates = [self.w]
         self.lr_params = lr_params
-        self.T = T
         self.set_lr_scheduler()
         self.momentum_def = momentum_def
         self.beta = beta    # Momentum parameter
@@ -19,12 +18,12 @@ class SGD:
             self.m = None
         self.grad_clip = grad_clip
 
-
     def step(self, t, objective, project):
         gt = self.compute_grad(objective, self.w)
         if self.grad_clip is not None:
             gt = np.clip(gt, -self.grad_clip, self.grad_clip)
-        lr = self.compute_lr(t, gt, self.T, objective)
+        # lr = self.compute_lr(t, gt, self.T, objective)
+        lr = self.compute_lr(t, gt)
         if self.momentum_def is not None:
             if self.m is None:
                 self.m = gt
@@ -49,13 +48,14 @@ class SGD:
                 self.w = self.w - lr * gt
 
     def run(self, T, objective, project=False):
-        for t in range(1, T): # todo: check of we want T + 1 or not
+        for t in range(1, T+1):
             objective.step()
             self.step(t, objective, project)
             self.iterates.append(self.w)
 
-    def compute_lr(self, t, grad, T=None, objective=None):
-        return self.lr_scheduler.compute_lr(t=t, grad=grad, T=T, objective=objective)
+    def compute_lr(self, t, grad):
+        # return self.lr_scheduler.compute_lr(t=t, grad=grad, objective=objective)
+        return self.lr_scheduler.compute_lr(t=t, grad=grad)
 
     def compute_grad(self, objective, w=None):
         if w is None:
@@ -69,8 +69,8 @@ class SGD:
             self.lr_scheduler = ConstantStepSizeScheduler(self.lr_params["alpha"])
         elif self.lr_params["type"] == 'AdaGrad':
             self.lr_scheduler = AdaGradScheduler(self.lr_params["alpha"])
-        elif self.lr_params["type"] == 'SGDLinearSystems':
-            self.lr_scheduler = LinearSystemScheduler(self.T)
+        elif self.lr_params["type"] == '1/2R':
+            self.lr_scheduler = ConstantStepSizeScheduler(1 / (2 * self.lr_params["R"]))
         else:
             raise NotImplementedError
 

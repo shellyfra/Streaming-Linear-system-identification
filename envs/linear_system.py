@@ -18,9 +18,8 @@ class LinearSystem:
         self.X0 = X0
         # Init. sequence
         self.X = self.X0.copy()
-        self.A = np.zeros((self.d, self.d))
-        self.prev_X = self.X0.copy()
-        self.points = [self.X]
+        self.prev_X = self.X.copy()
+        self.trajectory = [self.X]
 
     def get_dim(self):
         return self.A_star.shape[0]
@@ -29,10 +28,12 @@ class LinearSystem:
         self.prev_X = self.X.copy()
         self.X = np.matmul(self.A_star, self.X) + \
                  self.sigma * np.random.randn(self.d).reshape(-1, 1)
-        self.points.append(self.X)
+        self.trajectory.append(self.X)
 
-    def grad(self, w):
-        return 2 * np.matmul(self.A @ self.prev_X - self.X, self.prev_X.T)
+    def grad(self, A):  # TODO: replace self.prev_X and X with general X_t, X_{t+1} and if default is None use self.
+        ''' OLS gradient at current time '''
+        return 2 * np.matmul(A @ self.prev_X - self.X, self.prev_X.T)
+
 
 class RandBiMod(LinearSystem):
     def __init__(self, d=5, rho=0.9, sigma=1, X0=None):

@@ -18,7 +18,7 @@ class ConstantStepSizeScheduler(LearningRateScheduler):
         self.learning_rates = []
         self.alpha = alpha
 
-    def compute_lr(self):
+    def compute_lr(self, **kwargs):
         learning_rate = self.alpha
         self.learning_rates.append(learning_rate)
         return learning_rate
@@ -56,27 +56,28 @@ class AdaGradScheduler(LearningRateScheduler):
         return learning_rate
 
 
-class LinearSystemScheduler(LearningRateScheduler):
-    def __init__(self, samples_num=10_000_000):
-        super().__init__()
-        self.learning_rate = None
-        self.T = samples_num
-
-    def compute_lr(self, **kwargs):
-        """
-        To estimate R from the data, we use the first floor(2logT) = 32 samples and set
-        R as the sum of the norms of these samples. we let the step size to be 1/2R
-        """
-        if self.learning_rate is not None:
-            return self.learning_rate
-        T = kwargs['T']
-        objective = kwargs['objective']
-        R_num = int(np.floor(2*np.log(T)))
-        R = 0
-        for _ in range(R_num):
-            objective.step()
-            R += np.linalg.norm(objective.X)
-        self.learning_rate = 1/(2*R)
-        objective.points = [objective.prev_X, objective.X] # reset points count
-        return self.learning_rate
+# class LinearSystemScheduler(LearningRateScheduler):
+#     def __init__(self, samples_num=10_000_000):
+#         super().__init__()
+#         self.learning_rate = None
+#         self.T = samples_num
+#
+#     def compute_lr(self, **kwargs):
+#         """
+#         To estimate R from the data, we use the first floor(2logT) = 32 samples and set
+#         R as the sum of the norms of these samples. we let the step size to be 1/2R
+#         """
+#         if self.learning_rate is not None:
+#             return self.learning_rate
+#
+#         T = kwargs['T']
+#         objective = kwargs['objective']
+#         R_num = int(np.floor(2*np.log(T)))
+#         R = 0
+#         for _ in range(R_num):
+#             objective.step()
+#             R += np.linalg.norm(objective.X)
+#         self.learning_rate = 1/(2*R)
+#         objective.points = [objective.prev_X, objective.X]  # reset points count
+#         return self.learning_rate
 

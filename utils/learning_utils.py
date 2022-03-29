@@ -29,24 +29,50 @@ def cross_entropy_loss(y, y_pred, epsilon=1e-10):
 
 
 def create_averages_array(arr):
-    return np.cumsum(arr, axis=1) / np.arange(1, arr.shape[1] + 1)
+    if len(arr.shape) == 2:
+        return np.cumsum(arr, axis=0) / np.arange(1, arr.shape[0] + 1).reshape(-1, 1)
+    if len(arr.shape) == 3:
+        return np.cumsum(arr, axis=0) / np.arange(1, arr.shape[0] + 1).reshape(-1, 1, 1)
+    else:
+        raise NotImplementedError
+
+
+def compute_OLS_estimator(trajectory):
+    '''
+
+    Args:
+        trajectory: array of observations of size dxt
+
+    Returns: compute the OLS estimator based on the given (full) trajectory
+
+    '''
+    # Compute OLS
+    cov = trajectory[:, :-1] @ trajectory[:, :-1].T
+    cross_cov = trajectory[:, 1:] @ trajectory[:, :-1].T
+    A_ols = np.linalg.inv(cov) @ cross_cov
+    return A_ols
+
+
+def compute_OLS_error_arr(trajectory, A_star, start_from=2, subsample=1):
+    '''
+
+    Args:
+        trajectory: array of observations of size dxT
+
+    Returns: compute the OLS estimator array for every partial trajectory
+
+    '''
+    error_arr = []
+    T = trajectory.shape[1]
+    for t in range(start_from, T+1, subsample):
+        A_ols_t = compute_OLS_estimator(trajectory[:, :t+1])
+        error_t = np.linalg.norm(A_ols_t - A_star, ord=2)
+        error_arr.append(error_t)
+    return np.stack(error_arr)
 
 
 def accuracy(y, y_hat):
     return np.mean(y == y_hat)
-
-
-# def predict(X, w, b):
-#     # X --> Input.
-#     # w --> weights.
-#     # b --> bias.
-#
-#     # Predicting
-#     z = X @ w + b
-#     y_hat = softmax(z)
-#
-#     # Returning the class with highest probability.
-#     return np.argmax(y_hat, axis=1)
 
 
 def one_hot(idx, n_elements):

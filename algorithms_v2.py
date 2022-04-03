@@ -1,9 +1,9 @@
-
 import numpy as np
 from numpy.linalg import norm
 from utils.projection_utils import project_l2_ball
 from utils.prob_utils import sample_discrete
 from learning_rate_schedulers import *
+from utils.Buffer import Buffer
 
 
 class SGD:
@@ -13,7 +13,7 @@ class SGD:
         self.lr_params = lr_params
         self.set_lr_scheduler()
         self.momentum_def = momentum_def
-        self.beta = beta    # Momentum parameter
+        self.beta = beta  # Momentum parameter
         if self.momentum_def is not None:
             self.m = None
         self.grad_clip = grad_clip
@@ -48,7 +48,7 @@ class SGD:
                 self.w = self.w - lr * gt
 
     def run(self, T, objective, project=False):
-        for t in range(1, T+1):
+        for t in range(1, T + 1):
             objective.step()
             self.step(t, objective, project)
             self.iterates.append(self.w)
@@ -87,7 +87,7 @@ class MiniBatchSGD(SGD):
             self.draw_batch_samples(objective)
             self.step(t, objective, project)
             self.iterates.append(self.w)
-            self.batch_samples = []      # reset saved batch samples.
+            self.batch_samples = []  # reset saved batch samples.
             t += self.batch_size
 
     def draw_batch_samples(self, objective):
@@ -114,7 +114,7 @@ class SGD_MLMC(SGD):
         self.truncate_at = truncate_at
         if self.truncate_at is not None:
             normalization_factor = (self.geometric_param / (1 - self.geometric_param)) * \
-                                   (1 / (1 - ((1-self.geometric_param) ** self.truncate_at)))
+                                   (1 / (1 - ((1 - self.geometric_param) ** self.truncate_at)))
             self.truncated_dist = normalization_factor * \
                                   (1 - self.geometric_param) ** np.arange(1, self.truncate_at + 1)
         self.n_samples_per_step_list = [0]  # list for saving the number of samples
@@ -128,7 +128,7 @@ class SGD_MLMC(SGD):
             self.n_samples_per_step_list.append(self.samples_for_mlmc.shape[-1])
             self.step(t, objective, project)
             self.iterates.append(self.w)
-            self.samples_for_mlmc = []      # reset saved MLMC samples for next step!
+            self.samples_for_mlmc = []  # reset saved MLMC samples for next step!
             t += self.n_samples_per_step_list[-1]
 
     def draw_samples_for_mlmc(self, objective, T):
@@ -138,9 +138,9 @@ class SGD_MLMC(SGD):
             Jt = np.random.geometric(p=self.geometric_param)
         objective.step()
         self.samples_for_mlmc.append(objective.get_current_data())
-        Nt = 2 ** Jt      # Number of samples from the process
+        Nt = 2 ** Jt  # Number of samples from the process
         if Nt <= T:
-            for j in range(Nt-1):
+            for j in range(Nt - 1):
                 objective.step()
                 self.samples_for_mlmc.append(objective.get_current_data())
         self.samples_for_mlmc = np.hstack(self.samples_for_mlmc)
@@ -157,7 +157,7 @@ class SGD_MLMC(SGD):
         else:
             grads = np.hstack(grads)
             grad = grads[:, 0].reshape(-1, 1) + Nt * (np.mean(grads, axis=1, keepdims=True) -
-                                                      np.mean(grads[:, :int(Nt/2)], axis=1, keepdims=True))
+                                                      np.mean(grads[:, :int(Nt / 2)], axis=1, keepdims=True))
         return grad
 
 
@@ -173,3 +173,26 @@ class SGD_DD(SGD):
             if t % self.drop_param == 0:
                 self.step(t, objective, project)
                 self.iterates.append(self.w)
+
+
+class SGD_ER(SGD):
+    def __init__(self, w_init, lr_params, momentum_def=None, beta=0.9, grad_clip=None):
+        super().__init__(w_init, lr_params, momentum_def, beta, grad_clip)
+        self.buff = Buffer()
+
+    def run(self, T, objective, project=False):
+        for t in range(1, T + 1):
+            if self.buff.len() == 0:
+                self.buff.store(objective.get_curr_x())
+            if t % 100_000 == 0:
+                print(t, " iterations passed !")
+            self.buff.store(objective.step())
+            self.step(t, objective, project)
+            self.iterates.append(self.w)
+
+    def compute_grad(self, objective, w=None):
+        if w is None:
+            w = self.w.copy()
+        Z_t = self.buff.sample()
+        return objective.grad(w, Z_t[0], Z_t[1])
+

@@ -24,15 +24,22 @@ class LinearSystem:
     def get_dim(self):
         return self.A_star.shape[0]
 
+    def get_curr_x(self):
+        return self.X
+
     def step(self):
         self.prev_X = self.X.copy()
         self.X = np.matmul(self.A_star, self.X) + \
                  self.sigma * np.random.randn(self.d).reshape(-1, 1)
         self.trajectory.append(self.X)
+        return self.X
 
-    def grad(self, A):  # TODO: replace self.prev_X and X with general X_t, X_{t+1} and if default is None use self.
+    def grad(self, A, prev_X=None, X=None):  # TODO: replace self.prev_X and X with general X_t, X_{t+1} and if default is None use self.
         ''' OLS gradient at current time '''
-        return 2 * np.matmul(A @ self.prev_X - self.X, self.prev_X.T)
+        if (prev_X is None) or (X is None):
+            prev_X = self.prev_X
+            X = self.X
+        return 2 * np.matmul(A @ prev_X - X, prev_X.T)
 
 
 class RandBiMod(LinearSystem):

@@ -184,7 +184,7 @@ class SGD_ER(SGD):
         for t in range(1, T + 1):
             if self.buff.len() == 0:
                 self.buff.store(objective.get_curr_x())
-            if t % 100_000 == 0:
+            if t % 100000 == 0:
                 print(t, " iterations passed !")
             self.buff.store(objective.step())
             self.step(t, objective, project)

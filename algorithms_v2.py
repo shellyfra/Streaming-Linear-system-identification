@@ -71,6 +71,8 @@ class SGD:
             self.lr_scheduler = AdaGradScheduler(self.lr_params["alpha"])
         elif self.lr_params["type"] == '1/2R':
             self.lr_scheduler = ConstantStepSizeScheduler(1 / (2 * self.lr_params["R"]))
+        elif self.lr_params["type"] == '1/8RB':
+            self.lr_scheduler = ConstantStepSizeScheduler(1 / (8 * self.lr_params["R"] * self.lr_params["B"]))
         else:
             raise NotImplementedError
 
@@ -196,3 +198,67 @@ class SGD_ER(SGD):
         Z_t = self.buff.sample()
         return objective.grad(w, Z_t[0], Z_t[1])
 
+
+class SGD_RER(SGD):
+    def __init__(self, w_init, lr_params, R, buff_size=100, buffer_gap=10, momentum_def=None, beta=0.9, grad_clip=None):
+        super().__init__(w_init, lr_params, momentum_def, beta, grad_clip)
+        self.buff_gap = buffer_gap
+        self.buff_size = buff_size
+        self.total_buff_size = buffer_gap + buff_size
+        self.R = R
+        self.buffs = None
+
+    def run(self, T, objective, project=False):
+        N = int(np.floor(T/self.total_buff_size))
+        self.buffs = [Buffer(max_length=self.total_buff_size) for _ in range(N)]
+        for t in range(0, N-1):
+            for i in range(self.total_buff_size):
+                X = objective.step()
+                if np.linalg.norm(X) > self.R: # todo : why not np.power(np.linalg.norm(X), 2) ????
+                    self.iterates = np.zeros((self.w.shape[0], self.w.shape[1]))
+                    print("Norm is larger then R -> return a = zeros()")
+                    return
+                self.buffs[t].store(X)
+                if (self.total_buff_size * t + i +1) % 100000 == 0:
+                    print(self.total_buff_size * t + i + 1, " iterations passed !")
+            W_avg = self.step(t, objective, project)
+            self.iterates.append(W_avg)
+
+    def step(self, t, objective, project):
+        ws = []
+        for j in range(self.buff_size):
+            gt = self.compute_grad(objective, t, j, self.w)
+            if self.grad_clip is not None:
+                gt = np.clip(gt, -self.grad_clip, self.grad_clip)
+            # lr = self.compute_lr(t, gt, self.T, objective)
+            lr = self.compute_lr(t, gt)
+            if self.momentum_def is not None:
+                if self.m is None:
+                    self.m = gt
+                else:
+                    if self.momentum_def == 'standard':
+                        self.m = self.beta * self.m + (1 - self.beta) * gt
+                    elif self.momentum_def == 'corrected':
+                        self.m = self.beta * self.m + (1 - self.beta) * gt + \
+                                 self.beta * (gt - self.compute_grad(objective, self.iterates[-2]))
+                    else:
+                        raise NotImplementedError
+                if project:
+                    assert hasattr(objective, 'radius')
+                    self.w = project_l2_ball(self.w - lr * self.m, R=objective.radius)
+                else:
+                    self.w = self.w - lr * self.m
+            else:
+                if project:
+                    assert hasattr(objective, 'radius')
+                    self.w = project_l2_ball(self.w - lr * gt, R=objective.radius)
+                else:
+                    self.w = self.w - lr * gt
+            ws.append(self.w)
+        mean_w = np.array(ws).mean(axis=0)  # mean from t = 0 todo: add mean from starting point a ?
+        return mean_w
+
+    def compute_grad(self, objective, cur_buff_num, curr_buf_index, w=None):
+        if w is None:
+            w = self.w.copy()
+        return objective.grad(w, self.buffs[cur_buff_num].get_item_from_index(-2 - curr_buf_index), self.buffs[cur_buff_num].get_item_from_index(-1 - curr_buf_index))

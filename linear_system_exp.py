@@ -25,12 +25,12 @@ set_default_plot_params()
 # Option to load/save
 load_run = False  # False/True If true just load results from dir, o.w run simulations
 result_dir_to_load = 'results\\RandBiMod\\SGD_ER'
-save_result = True
+save_result = False
 
 # Plot options
 save_PDF = False  # False/True - save figures as PDF file in the result folder
 plot = True
-plot_from_mem = True  # plot all the data that we have in results folder
+plot_from_mem = False  # plot all the data that we have in results folder
 # -------------------------------------------------------------------------------------------
 # Set Parameters
 # -------------------------------------------------------------------------------------------
@@ -51,17 +51,17 @@ else:
     raise NotImplementedError
 
 # args.run_name = 'SGD_001_over_sqrtT'  # 'Name of dir to save results in (if empty, name by time)'
-args.run_name = 'SGD'
+args.run_name = 'SGD_RER'
 args.seed = 20  # Random seed
 args.n_reps = 3  # Number of experiment repetitions. Default: LinearRegression - 10, MNIST - 20
 args.evaluate_on_average = True
 args.subsample = 100  # for plotting
 
 # args.optimizer = 'SGD'  # 'SGD' | 'SGD_MLMC' | 'SGD_DD' | 'SGD_ER' | 'SGD_RER'
-args.optimizer = 'SGD'
+args.optimizer = 'SGD_RER'
 args.lr_params = {'type': '1/2R', 'n_samples_for_estimating_R': int(np.floor(2 * np.log(args.T)))}  # From paper SGD-ER
 # args.lr_params = {'type': 'AdaGrad', 'alpha': 1}
-if args.optimizer == 'SGD_RER':
+if args.optimizer == 'SGD_RER' or args.optimizer == 'SGD_ER':
     args.B = 100
     args.lr_params["B"] = args.B
     args.u = 10  # gap size
@@ -105,7 +105,7 @@ def single_simulation(args):
         optimizer = SGD(w_init=A_init, lr_params=args.lr_params, momentum_def=None,
                         beta=None, grad_clip=None)
     elif args.optimizer == 'SGD_ER':
-        optimizer = SGD_ER(w_init=A_init, lr_params=args.lr_params, momentum_def=None,
+        optimizer = SGD_ER(w_init=A_init, lr_params=args.lr_params,  buff_size=args.B, buffer_gap=args.u, momentum_def=None,
                            beta=None, grad_clip=None)
     elif args.optimizer == 'SGD_RER':
         optimizer = SGD_RER(w_init=A_init, lr_params=args.lr_params, buff_size=args.B, buffer_gap=args.u, R=R, momentum_def=None,

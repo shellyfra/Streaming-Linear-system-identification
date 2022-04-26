@@ -8,7 +8,10 @@ class Buffer:
     """
     Buffer class for the buffer in the SGD-ER and SGD-RER
     """
-    def __init__(self, max_length=1_000_000):
+
+    def __init__(self, max_length=1_000_000, buff_size=10, buffer_gap=10):
+        self.buff_gap = buffer_gap
+        self.buff_size = buff_size
         self.buff = list()
         self.max_length = max_length
         self.need_del = False
@@ -23,8 +26,8 @@ class Buffer:
             self.need_del = True
             # del self.buff[0]
 
-    def sample(self):
-        index = randint(0, len(self.buff)-2)
+    def sample(self, curr_idx):
+        index = self.buff_gap - 1 + randint(0, curr_idx)
         z_t = (self.buff[index], self.buff[index + 1])
         return z_t
 

@@ -76,7 +76,7 @@ def plot_all_dict_instances():
         except FileNotFoundError:
             continue
         error_avg_mem, error_std_mem = info_dict2["error_avg"], info_dict2["error_std"]
-        if name == "SGD_RER":
+        if name == "SGD_RER" or name == 'SGD_ER':
             plot_convergence(error_avg_mem, error_std_mem, n_reps=args2.n_reps, subsample=1, label=name,
                              xaxis=np.arange(args2.lr_params["B"], args2.T, args2.lr_params["B"] + args2.u))
         elif name == 'SGD':
@@ -102,7 +102,7 @@ def plot_instance(args, info_dict, plot, save_PDF):
         OLS_error_avg, OLS_error_std = info_dict["OLS_error_avg"], info_dict["OLS_error_std"]
     # ----- Plot figures ----- #
     if plot or save_PDF:
-        if args.optimizer == 'SGD_RER':
+        if args.optimizer == 'SGD_RER' or args.optimizer == 'SGD_ER':
             x_axis = np.arange(args.lr_params["B"], args.T, args.lr_params["B"] + args.u)
             # x_axis = np.arange(1, args.T + 1)
             plot_convergence(error_avg, error_std, n_reps=args.n_reps, subsample=1, label=args.run_name,

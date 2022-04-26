@@ -49,6 +49,8 @@ class SGD:
 
     def run(self, T, objective, project=False):
         for t in range(1, T + 1):
+            if t % 100000 == 0:
+                print(t, " iterations passed !")
             objective.step()
             self.step(t, objective, project)
             self.iterates.append(self.w)
@@ -95,7 +97,7 @@ class MiniBatchSGD(SGD):
     def draw_batch_samples(self, objective):
         for i in range(self.batch_size):
             objective.step()
-            self.batch_samples.append(objective.get_current_data())
+            self.batch_samples.append(objective.get_curr_x())
         self.batch_samples = np.hstack(self.batch_samples)
 
     def compute_grad(self, objective, w=None):
@@ -125,6 +127,8 @@ class SGD_MLMC(SGD):
     def run(self, T, objective, project=False):
         t = 1
         while t <= T:
+            if t % 100000 == 0:
+                print(t, " iterations passed !")
             self.draw_samples_for_mlmc(objective, T)
             # self.draw_samples_for_mlmc(objective, t)
             self.n_samples_per_step_list.append(self.samples_for_mlmc.shape[-1])
@@ -138,13 +142,13 @@ class SGD_MLMC(SGD):
             Jt = sample_discrete(self.truncated_dist) + 1
         else:
             Jt = np.random.geometric(p=self.geometric_param)
-        objective.step()
-        self.samples_for_mlmc.append(objective.get_current_data())
+        objective.step() # todo: add or remove ? because we are ignoring the first sample
+        self.samples_for_mlmc.append(objective.get_curr_x())
         Nt = 2 ** Jt  # Number of samples from the process
         if Nt <= T:
             for j in range(Nt - 1):
                 objective.step()
-                self.samples_for_mlmc.append(objective.get_current_data())
+                self.samples_for_mlmc.append(objective.get_curr_x())
         self.samples_for_mlmc = np.hstack(self.samples_for_mlmc)
 
     def compute_grad(self, objective, w=None):
@@ -152,14 +156,15 @@ class SGD_MLMC(SGD):
             w = self.w.copy()
         Nt = self.samples_for_mlmc.shape[-1]
         grads = []
-        for j in range(Nt):
-            grads.append(objective.grad(w, self.samples_for_mlmc[:, j]))
+        for j in range(Nt - 1):
+            g_test = objective.grad(w, self.samples_for_mlmc[:, j].reshape(-1, 1), self.samples_for_mlmc[:, j + 1].reshape(-1, 1))
+            grads.append(g_test)
         if Nt == 1:
             grad = grads[0]
         else:
-            grads = np.hstack(grads)
-            grad = grads[:, 0].reshape(-1, 1) + Nt * (np.mean(grads, axis=1, keepdims=True) -
-                                                      np.mean(grads[:, :int(Nt / 2)], axis=1, keepdims=True))
+            # grads = np.vstack(grads)
+            grad = grads[0] + Nt * (np.squeeze(np.mean(grads, axis=0, keepdims=True))) -\
+                   np.squeeze(np.mean(grads[: int(Nt/2)], axis=0, keepdims=True))
         return grad
 
 
@@ -214,10 +219,10 @@ class SGD_RER(SGD):
         for t in range(0, N-1):
             for i in range(self.total_buff_size):
                 X = objective.step()
-                if np.linalg.norm(X) > self.R: # todo : why not np.power(np.linalg.norm(X), 2) ????
-                    self.iterates = np.zeros((self.w.shape[0], self.w.shape[1]))
-                    print("Norm is larger then R -> return a = zeros()")
-                    return
+                # if np.linalg.norm(X)**2 > self.R:  # todo : why not np.power(np.linalg.norm(X), 2) ????
+                    # self.iterates = np.zeros((self.w.shape[0], self.w.shape[1]))
+                    # print("Norm is larger then R -> return a = zeros()")
+                    # return
                 self.buffs[t].store(X)
                 if (self.total_buff_size * t + i +1) % 100000 == 0:
                     print(self.total_buff_size * t + i + 1, " iterations passed !")

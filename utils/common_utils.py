@@ -85,7 +85,7 @@ def create_result_dir(args):
     time_str = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     run_file_path = sys.argv[0]
     dir_path = os.path.dirname(os.path.realpath(sys.argv[0]))
-    args.result_dir = os.path.join(dir_path, 'results', args.result_dir, args.run_name)
+    args.result_dir = os.path.join(dir_path, 'results', args.result_dir, args.optimizer)
     ensure_dir(args.result_dir)
     message = [
         'Run script: ' + run_file_path,

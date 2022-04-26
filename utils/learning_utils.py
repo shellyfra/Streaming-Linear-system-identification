@@ -65,6 +65,8 @@ def compute_OLS_error_arr(trajectory, A_star, start_from=2, subsample=1):
     error_arr = []
     T = trajectory.shape[1]
     for t in range(start_from, T+1, subsample):
+        if t % 100000 == 0:
+            print(t, " OLS iterations passed !")
         A_ols_t = compute_OLS_estimator(trajectory[:, :t+1])
         error_t = np.linalg.norm(A_ols_t - A_star, ord=2)
         error_arr.append(error_t)

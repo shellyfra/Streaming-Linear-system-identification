@@ -68,7 +68,7 @@ def plot_error_bars(avg_arr, std_arr, x_ticks, n_reps=1, label=None, width=None,
 
 
 def plot_all_dict_instances():
-    folders = ["SGD", "SGD_ER", "SGD_RER", "MAG"]
+    folders = ["SGD", "SGD_ER", "SGD_RER", "SGD_MLMC"]
     for name in folders:
         res_dir = 'results\\RandBiMod\\' + str(name)
         try:
@@ -86,8 +86,8 @@ def plot_all_dict_instances():
                              subsample=1, n_reps=args2.n_reps, label='OLS')
         else:
             plot_convergence(error_avg_mem, error_std_mem, n_reps=args2.n_reps, subsample=args2.subsample, label=name)
-    plt.xlim(1, args2.T)
-    plt.xlabel('Num. iterations')
+    plt.xlim(1e2, args2.T)
+    plt.xlabel('Num. Samples')
     plt.ylabel(r'$||\overline{A}_{t} - A^*||$')
     plt.xscale('log')
     plt.yscale('log')

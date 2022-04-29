@@ -42,7 +42,7 @@ if args.exp == 'RandBiMod':
     args.d = 5  # A* matrix size
     args.rho = 0.9  # values in the the eigenvalue are rho and rho/3
     args.sigma = 1  # noise distribution
-    args.T = 1_000_000  # horizon
+    args.T = 100_000  # horizon
     args.X0 = None
     args.result_dir = 'RandBiMod'
     # args.gap_size = 10
@@ -51,14 +51,14 @@ else:
     raise NotImplementedError
 
 # args.run_name = 'SGD_001_over_sqrtT'  # 'Name of dir to save results in (if empty, name by time)'
-args.run_name = 'SGD_RER'
+args.run_name = 'SGD'
 args.seed = 20  # Random seed
 args.n_reps = 3  # Number of experiment repetitions. Default: LinearRegression - 10, MNIST - 20
 args.evaluate_on_average = True
 args.subsample = 100  # for plotting
 
 # args.optimizer = 'SGD'  # 'SGD' | 'SGD_MLMC' | 'SGD_DD' | 'SGD_ER' | 'SGD_RER'
-args.optimizer = 'SGD_RER'
+args.optimizer = 'SGD'
 args.lr_params = {'type': '1/2R', 'n_samples_for_estimating_R': int(np.floor(2 * np.log(args.T)))}  # From paper SGD-ER
 # args.lr_params = {'type': 'AdaGrad', 'alpha': 1}
 if args.optimizer == 'SGD_RER' or args.optimizer == 'SGD_ER':
@@ -99,6 +99,8 @@ def single_simulation(args):
             R += np.linalg.norm(objective.get_curr_x())
             objective.step()
         args.lr_params['R'] = R
+    else:
+        R = None
         # args.T = args.T - args.lr_params['n_samples_for_estimating_R']  # Ignore samples used for estimation
     # Set optimizer
     if args.optimizer == 'SGD':
@@ -132,7 +134,12 @@ def single_simulation(args):
     else:
         observed_samples_axis = None
 
-    error = np.linalg.norm(iterates - objective.A_star, ord=2, axis=(1, 2))
+
+    error = np.linalg.norm(iterates - objective.A_star, ord=2, axis=(1, 2)) # todo add to evaluate func for pred / parameter error that
+    # will be a param
+    if args.optimizer == "SGD" and 'n_samples_for_estimating_R' not in args.lr_params.keys():
+        objective.step()
+
     trajectory = np.hstack(objective.trajectory)
     A_star = objective.A_star
     return error, trajectory, A_star, observed_samples_axis
@@ -164,6 +171,7 @@ def run_simulations(arguments, save_result):
 
         error_mat.append(error)
         print('Rep {} is done! Elapsed time: {:.3f}[s]'.format(i_rep + 1, time.time() - start_time))
+        start_time = time.time()
 
     error_mat = np.vstack(error_mat)
     if args.optimizer == 'SGD':

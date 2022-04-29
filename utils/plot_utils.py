@@ -81,6 +81,9 @@ def plot_all_dict_instances():
                              xaxis=np.arange(args2.lr_params["B"], args2.T, args2.lr_params["B"] + args2.u))
         elif name == 'SGD':
             OLS_error_avg, OLS_error_std = info_dict2["OLS_error_avg"], info_dict2["OLS_error_std"]
+            if 'n_samples_for_estimating_R' not in args2.lr_params.keys():
+                OLS_error_avg[0] = OLS_error_avg[1]
+                OLS_error_std[0] = OLS_error_std[1]
             plot_convergence(error_avg_mem, error_std_mem, n_reps=args2.n_reps, subsample=args2.subsample, label=args2.run_name)
             plot_convergence(OLS_error_avg, OLS_error_std, xaxis=np.arange(1, error_avg_mem.shape[0] + 1, args2.subsample),
                              subsample=1, n_reps=args2.n_reps, label='OLS')

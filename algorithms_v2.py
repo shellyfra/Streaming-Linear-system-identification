@@ -255,7 +255,7 @@ class SGD_ER(SGD):
 
 
 class SGD_RER(SGD):
-    def __init__(self, w_init, lr_params, R, buff_size=100, buffer_gap=10, momentum_def=None, beta=0.9, grad_clip=None):
+    def __init__(self, w_init, lr_params, R=None, buff_size=100, buffer_gap=10, momentum_def=None, beta=0.9, grad_clip=None):
         super().__init__(w_init, lr_params, momentum_def, beta, grad_clip)
         self.buff_gap = buffer_gap
         self.buff_size = buff_size

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import ortho_group
+from scipy.linalg import solve_discrete_lyapunov
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -43,10 +44,13 @@ class LinearSystem:
 
 
 class RandBiMod(LinearSystem):
-    def __init__(self, d=5, rho=0.9, sigma=1, X0=None):
+    def __init__(self, d=5, rho=0.9, sigma=1, X0=None, simple_A_star=False):
         self.d = d
         self.rho = rho
-        super().__init__(A_star=self.compute_A_star(), sigma=sigma, X0=X0)
+        if simple_A_star:
+            super().__init__(A_star=self.rho * np.eye(self.d), sigma=sigma, X0=X0)
+        else:
+            super().__init__(A_star=self.compute_A_star(), sigma=sigma, X0=X0)
 
     def compute_A_star(self):
         # eigenvalues
@@ -56,3 +60,20 @@ class RandBiMod(LinearSystem):
         # eigenvectors
         U = ortho_group.rvs(self.d)
         return U @ Lambda @ U.T
+
+    def evaluate_error(self, iterates, calc_prediction_error=False):
+        if calc_prediction_error:
+            E = self.sigma * np.eye(self.d)
+            lambda_d = solve_discrete_lyapunov(self.A_star, np.matmul(E, E.T))
+            Xt_samples = np.random.multivariate_normal(np.zeros(self.d), lambda_d, 1000)
+            Xt_1_samples = np.array([np.matmul(self.A_star, i.reshape(-1,1)) + \
+                            self.sigma * np.random.randn(self.d).reshape(-1, 1) for i in Xt_samples])
+            error = []
+            sum_for_err = 0
+            for A in iterates:
+                for i in range(Xt_samples.shape[0]):
+                    sum_for_err += np.linalg.norm(Xt_1_samples[i] - A @ Xt_samples[i].reshape(-1,1), ord=2)
+                error.append(float(sum_for_err/Xt_samples.shape[0]))
+            return error
+        else:
+            return np.linalg.norm(iterates - self.A_star, ord=2, axis=(1, 2))

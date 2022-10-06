@@ -24,8 +24,8 @@ set_default_plot_params()
 
 # Option to load/save
 load_run = False  # False/True If true just load results from dir, o.w run simulations
-result_dir_to_load = 'results\\RandBiMod\\SGD_ER'
-save_result = False
+result_dir_to_load = 'results\\RandBiMod_pred_error\\SGD'
+save_result = True
 
 # Plot options
 save_PDF = False  # False/True - save figures as PDF file in the result folder
@@ -40,11 +40,12 @@ args = argparse.Namespace()
 args.exp = 'RandBiMod'  # '____' | '_____' | '____'
 if args.exp == 'RandBiMod':
     args.d = 5  # A* matrix size
-    args.rho = 0.9  # values in the the eigenvalue are rho and rho/3
-    args.sigma = 1  # noise distribution
+    args.rho = 0.9  # values in the eigenvalue are rho and rho/3
+    args.sigma = 0.1  # noise distribution
     args.T = 100_000  # horizon
     args.X0 = None
-    args.result_dir = 'RandBiMod'
+    args.result_dir = 'RandBiMod_pred_error'
+    args.simple_A_star = False  # True -> A = rho*I
     # args.gap_size = 10
     # args.buffer_size = 10*args.gap_size
 else:
@@ -56,6 +57,7 @@ args.seed = 20  # Random seed
 args.n_reps = 3  # Number of experiment repetitions. Default: LinearRegression - 10, MNIST - 20
 args.evaluate_on_average = True
 args.subsample = 100  # for plotting
+args.calc_prediction_error = True
 
 # args.optimizer = 'SGD'  # 'SGD' | 'SGD_MLMC' | 'SGD_DD' | 'SGD_ER' | 'SGD_RER'
 args.optimizer = 'SGD'
@@ -86,7 +88,7 @@ def single_simulation(args):
     project = False
     if args.exp == 'RandBiMod':
         # X0 = 2*np.random.randn(args.d).reshape(-1, 1)
-        objective = RandBiMod(d=args.d, rho=args.rho, sigma=args.sigma, X0=args.X0)
+        objective = RandBiMod(d=args.d, rho=args.rho, sigma=args.sigma, X0=args.X0, simple_A_star=args.simple_A_star)
     else:
         raise NotImplementedError
     # Draw initial guess
@@ -134,8 +136,8 @@ def single_simulation(args):
     else:
         observed_samples_axis = None
 
-
-    error = np.linalg.norm(iterates - objective.A_star, ord=2, axis=(1, 2)) # todo add to evaluate func for pred / parameter error that
+    # error = np.linalg.norm(iterates - objective.A_star, ord=2, axis=(1, 2)) # todo add to evaluate func for pred / parameter error that
+    error = objective.evaluate_error(iterates, args.calc_prediction_error)
     # will be a param
     if args.optimizer == "SGD" and 'n_samples_for_estimating_R' not in args.lr_params.keys():
         objective.step()
@@ -193,6 +195,7 @@ def main(args, save_result=True, load_run_data_flag=False, result_dir_to_load=''
     if load_run_data_flag:
         # args, disp_errors, disp_errors_logT = load_run_data(result_dir_to_load)
         args, info_dict = load_run_data(result_dir_to_load)
+        plot_instance(args, info_dict, plot, save_PDF)
     elif plot_from_mem:
         plot_all_dict_instances()
     else:

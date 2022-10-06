@@ -70,7 +70,7 @@ def plot_error_bars(avg_arr, std_arr, x_ticks, n_reps=1, label=None, width=None,
 def plot_all_dict_instances():
     folders = ["SGD", "SGD_ER", "SGD_RER", "SGD_MLMC"]
     for name in folders:
-        res_dir = 'results\\RandBiMod\\' + str(name)
+        res_dir = 'results\\RandBiMod_simple_A_star\\' + str(name)
         try:
             args2, info_dict2 = load_run_data(res_dir)
         except FileNotFoundError:
@@ -87,11 +87,14 @@ def plot_all_dict_instances():
             plot_convergence(error_avg_mem, error_std_mem, n_reps=args2.n_reps, subsample=args2.subsample, label=args2.run_name)
             plot_convergence(OLS_error_avg, OLS_error_std, xaxis=np.arange(1, error_avg_mem.shape[0] + 1, args2.subsample),
                              subsample=1, n_reps=args2.n_reps, label='OLS')
+        elif name == "SGD_MLMC":
+            plot_convergence(error_avg_mem, error_std_mem, n_reps=args2.n_reps, subsample=args2.subsample, label="ADAGRAD_MLMC")
         else:
             plot_convergence(error_avg_mem, error_std_mem, n_reps=args2.n_reps, subsample=args2.subsample, label=name)
     plt.xlim(1e2, args2.T)
     plt.xlabel('Num. Samples')
     plt.ylabel(r'$||\overline{A}_{t} - A^*||$')
+    # plt.ylabel(r'$E[||X_(t+1) -AX_t||]$')
     plt.xscale('log')
     plt.yscale('log')
     plt.legend()
